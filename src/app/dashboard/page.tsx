@@ -185,50 +185,65 @@ export default function DashboardPage() {
                 key={clip.shortId}
                 className="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-5 hover:border-indigo-500/20 transition-all"
               >
-                <div className="flex items-center justify-between gap-4 flex-wrap">
-                  <div className="flex items-center gap-4">
-                    <button
-                      onClick={() => router.push(`/v/${clip.shortId}`)}
-                      className="text-slate-100 font-semibold hover:text-indigo-300 transition-colors text-left"
-                    >
-                      {clip.originalName}
-                    </button>
-                    <div className="flex items-center gap-3 text-xs text-slate-500">
-                      <span>{formatDuration(clip.durationSeconds)}</span>
-                      <span>{formatBytes(clip.sizeBytes)}</span>
-                      <span className="flex items-center gap-1">
-                        <Eye size={11} /> {clip.viewCount}
-                      </span>
-                      {clip.private && (
-                        <span className="flex items-center gap-1 text-amber-500">
-                          <Lock size={11} /> Private
-                        </span>
-                      )}
-                    </div>
+                <div className="flex items-center gap-4 flex-wrap">
+                  {/* Thumbnail */}
+                  <div
+                    onClick={() => router.push(`/v/${clip.shortId}`)}
+                    className="w-32 h-20 rounded-xl overflow-hidden bg-black flex-shrink-0 cursor-pointer"
+                  >
+                    <img
+                      src={`/api/clips/thumbnail/${clip.shortId}`}
+                      alt={clip.originalName}
+                      className="w-full h-full object-cover"
+                    />
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => copyLink(clip.shortId)}
-                      className="p-2 rounded-lg text-slate-500 hover:text-indigo-300 hover:bg-indigo-500/10 transition-all"
-                      title="Copy link"
-                    >
-                      {copiedId === clip.shortId ? <Check size={16} /> : <Copy size={16} />}
-                    </button>
-                    <button
-                      onClick={() => setShareTarget(clip.shortId)}
-                      className="p-2 rounded-lg text-slate-500 hover:text-cyan-300 hover:bg-cyan-500/10 transition-all"
-                      title="Share with user"
-                    >
-                      <Share2 size={16} />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(clip.shortId)}
-                      className="p-2 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-all"
-                      title="Delete"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                  {/* Info + actions */}
+                  <div className="flex-1 flex items-center justify-between gap-4 flex-wrap">
+                    <div className="flex items-center gap-4">
+                      <button
+                        onClick={() => router.push(`/v/${clip.shortId}`)}
+                        className="text-slate-100 font-semibold hover:text-indigo-300 transition-colors text-left"
+                      >
+                        {clip.originalName}
+                      </button>
+                      <div className="flex items-center gap-3 text-xs text-slate-500">
+                        <span>{formatDuration(clip.durationSeconds)}</span>
+                        <span>{formatBytes(clip.sizeBytes)}</span>
+                        <span className="flex items-center gap-1">
+                          <Eye size={11} /> {clip.viewCount}
+                        </span>
+                        {clip.private && (
+                          <span className="flex items-center gap-1 text-amber-500">
+                            <Lock size={11} /> Private
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => copyLink(clip.shortId)}
+                        className="p-2 rounded-lg text-slate-500 hover:text-indigo-300 hover:bg-indigo-500/10 transition-all"
+                        title="Copy link"
+                      >
+                        {copiedId === clip.shortId ? <Check size={16} /> : <Copy size={16} />}
+                      </button>
+                      <button
+                        onClick={() => setShareTarget(clip.shortId)}
+                        className="p-2 rounded-lg text-slate-500 hover:text-cyan-300 hover:bg-cyan-500/10 transition-all"
+                        title="Share with user"
+                      >
+                        <Share2 size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(clip.shortId)}
+                        className="p-2 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                        title="Delete"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
                 </div>
 
