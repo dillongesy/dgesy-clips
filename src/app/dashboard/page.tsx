@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { isLoggedIn } from "@/lib/auth";
 import api from "@/lib/api";
-import { Upload, Trash2, Share2, Copy, Check, Lock, Eye } from "lucide-react";
+import { Upload, Trash2, Share2, Copy, Check, Lock, Eye, EyeOff, Pencil, Globe } from "lucide-react";
 
 interface Clip {
   shortId: string;
@@ -39,6 +39,8 @@ export default function DashboardPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [shareTarget, setShareTarget] = useState<string | null>(null);
   const [shareUsername, setShareUsername] = useState("");
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -99,6 +101,36 @@ export default function DashboardPage() {
       setClips((c) => c.filter((clip) => clip.shortId !== shortId));
     } catch {
       setError("Failed to delete clip");
+    }
+  };
+
+  const handleRename = async (shortId: string) => {
+    if (!renameValue.trim()) return;
+    try {
+      await api.patch(`/api/clips/${shortId}/rename`, { name: renameValue });
+      setClips((c) => c.map((clip) =>
+        clip.shortId === shortId
+          ? { ...clip, originalName: renameValue.trim() }
+          : clip
+      ));
+      setRenamingId(null);
+      setRenameValue("");
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { error?: string } } };
+      setError(error.response?.data?.error || "Rename failed");
+    }
+  };
+
+  const handleTogglePrivacy = async (shortId: string) => {
+    try {
+      const res = await api.patch(`/api/clips/${shortId}/privacy`);
+      setClips((c) => c.map((clip) =>
+        clip.shortId === shortId
+          ? { ...clip, private: res.data.private }
+          : clip
+      ));
+    } catch {
+      setError("Failed to update privacy");
     }
   };
 
@@ -219,36 +251,86 @@ export default function DashboardPage() {
 
                   {/* Info + actions */}
                   <div className="flex-1 flex items-center justify-between gap-4 flex-wrap">
-                    <div className="flex items-center gap-4">
-                      <button
-                        onClick={() => router.push(`/v/${clip.shortId}`)}
-                        className="text-slate-100 font-semibold hover:text-indigo-300 transition-colors text-left"
-                      >
-                        {clip.originalName}
-                      </button>
+                    <div className="space-y-1">
+                      {renamingId === clip.shortId ? (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            value={renameValue}
+                            onChange={(e) => setRenameValue(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") handleRename(clip.shortId);
+                              if (e.key === "Escape") {
+                                setRenamingId(null);
+                                setRenameValue("");
+                              }
+                            }}
+                            autoFocus
+                            className="px-3 py-1.5 rounded-lg bg-white/[0.05] border border-indigo-500/40 text-slate-100 text-sm focus:outline-none"
+                          />
+                          <button
+                            onClick={() => handleRename(clip.shortId)}
+                            className="px-3 py-1.5 rounded-lg text-xs font-medium text-white"
+                            style={{ background: "linear-gradient(135deg, #6366f1, #06b6d4)" }}
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => { setRenamingId(null); setRenameValue(""); }}
+                            className="px-3 py-1.5 rounded-lg text-xs text-slate-400 border border-white/[0.08] hover:bg-white/[0.05] transition-all"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => router.push(`/v/${clip.shortId}`)}
+                          className="text-slate-100 font-semibold hover:text-indigo-300 transition-colors text-left"
+                        >
+                          {clip.originalName}
+                        </button>
+                      )}
                       <div className="flex items-center gap-3 text-xs text-slate-500">
                         <span>{formatDuration(clip.durationSeconds)}</span>
                         <span>{formatBytes(clip.sizeBytes)}</span>
                         <span className="flex items-center gap-1">
                           <Eye size={11} /> {clip.viewCount}
                         </span>
-                        {clip.private && (
-                          <span className="flex items-center gap-1 text-amber-500">
-                            <Lock size={11} /> Private
-                          </span>
-                        )}
+                        <span className={`flex items-center gap-1 ${clip.private ? "text-amber-500" : "text-emerald-500"}`}>
+                          {clip.private ? <Lock size={11} /> : <Globe size={11} />}
+                          {clip.private ? "Private" : "Public"}
+                        </span>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2">
                       <button
+                        onClick={() => {
+                          setRenamingId(clip.shortId);
+                          setRenameValue(clip.originalName);
+                        }}
+                        className="p-2 rounded-lg text-slate-500 hover:text-indigo-300 hover:bg-indigo-500/10 transition-all"
+                        title="Rename"
+                      >
+                        <Pencil size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleTogglePrivacy(clip.shortId)}
+                        className={`p-2 rounded-lg transition-all ${
+                          clip.private
+                            ? "text-amber-400 hover:bg-amber-500/10"
+                            : "text-emerald-400 hover:bg-emerald-500/10"
+                        }`}
+                        title={clip.private ? "Make public" : "Make private"}
+                      >
+                        {clip.private ? <EyeOff size={16} /> : <Eye size={16} />}
+                      </button>
+                      <button
                         onClick={() => copyLink(clip.shortId)}
                         className="p-2 rounded-lg text-slate-500 hover:text-indigo-300 hover:bg-indigo-500/10 transition-all"
                         title="Copy link"
                       >
-                        {copiedId === clip.shortId
-                          ? <Check size={16} />
-                          : <Copy size={16} />}
+                        {copiedId === clip.shortId ? <Check size={16} /> : <Copy size={16} />}
                       </button>
                       <button
                         onClick={() => setShareTarget(clip.shortId)}
@@ -280,17 +362,12 @@ export default function DashboardPage() {
                     <button
                       onClick={() => handleShare(clip.shortId)}
                       className="px-4 py-2 rounded-xl text-sm font-medium text-white"
-                      style={{
-                        background: "linear-gradient(135deg, #6366f1, #06b6d4)",
-                      }}
+                      style={{ background: "linear-gradient(135deg, #6366f1, #06b6d4)" }}
                     >
                       Share
                     </button>
                     <button
-                      onClick={() => {
-                        setShareTarget(null);
-                        setShareUsername("");
-                      }}
+                      onClick={() => { setShareTarget(null); setShareUsername(""); }}
                       className="px-4 py-2 rounded-xl text-sm text-slate-400 border border-white/[0.08] hover:bg-white/[0.05] transition-all"
                     >
                       Cancel

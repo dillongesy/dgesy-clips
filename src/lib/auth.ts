@@ -5,10 +5,13 @@ export const getToken = (): string | null => {
 
 export const setToken = (token: string): void => {
   localStorage.setItem("token", token);
+  // Also set as cookie for server-side access
+  document.cookie = `token=${token}; path=/; max-age=86400; SameSite=Strict`;
 };
 
 export const removeToken = (): void => {
   localStorage.removeItem("token");
+  document.cookie = "token=; path=/; max-age=0";
 };
 
 export const parseToken = (token: string) => {
