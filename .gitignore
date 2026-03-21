@@ -42,5 +42,5 @@ next-env.d.ts
 
 # Dev
 /clipsapi/
-AGENTS.md
-CLAUDE.md
+/AGENTS.md
+/CLAUDE.md
