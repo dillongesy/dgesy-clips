@@ -33,7 +33,6 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [processing, setProcessing] = useState(false);
   const [error, setError] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [shareTarget, setShareTarget] = useState<string | null>(null);
@@ -76,7 +75,6 @@ export default function DashboardPage() {
         onUploadProgress: (e) => {
           const pct = Math.round((e.loaded * 100) / (e.total || 1));
           setUploadProgress(pct);
-          if (pct === 100) setProcessing(true);
         },
       });
       await fetchClips();
@@ -85,7 +83,6 @@ export default function DashboardPage() {
       setError(error.response?.data?.error || "Upload failed");
     } finally {
       setUploading(false);
-      setProcessing(false);
       setUploadProgress(0);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
@@ -148,27 +145,20 @@ export default function DashboardPage() {
               }}
             >
               <Upload size={16} />
-              {processing ? "Processing…" : uploading ? `Uploading ${uploadProgress}%` : "Upload Clip"}
+              {uploading ? `Uploading ${uploadProgress}%` : "Upload Clip"}
             </button>
           </div>
         </div>
 
-        {(uploading || processing) && (
+        {uploading && (
           <div className="mb-6 rounded-xl overflow-hidden bg-white/[0.04] border border-white/[0.06]">
-            {processing ? (
-              <div
-                className="h-1.5 animate-pulse"
-                style={{ width: "100%", background: "linear-gradient(90deg, #6366f1, #06b6d4)" }}
-              />
-            ) : (
-              <div
-                className="h-1.5 transition-all duration-300"
-                style={{
-                  width: `${uploadProgress}%`,
-                  background: "linear-gradient(90deg, #6366f1, #06b6d4)",
-                }}
-              />
-            )}
+            <div
+              className="h-1.5 transition-all duration-300"
+              style={{
+                width: `${uploadProgress}%`,
+                background: "linear-gradient(90deg, #6366f1, #06b6d4)",
+              }}
+            />
           </div>
         )}
 
