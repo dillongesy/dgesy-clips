@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import api from "@/lib/api";
 import { Eye, Clock, User } from "lucide-react";
@@ -22,6 +22,8 @@ function formatDuration(seconds: number) {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+const VOLUME_KEY = "clip_volume";
+
 export default function VideoClient() {
   const params = useParams();
   const shortId = typeof window !== "undefined"
@@ -29,6 +31,7 @@ export default function VideoClient() {
     : (params.shortId as string);
   const [clip, setClip] = useState<ClipInfo | null>(null);
   const [error, setError] = useState("");
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     const fetchClip = async () => {
@@ -41,6 +44,25 @@ export default function VideoClient() {
     };
     fetchClip();
   }, [shortId]);
+
+  // Restore saved volume when video element is ready
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const saved = localStorage.getItem(VOLUME_KEY);
+    if (saved !== null) {
+      const vol = parseFloat(saved);
+      if (!isNaN(vol)) video.volume = vol;
+    }
+
+    const handleVolumeChange = () => {
+      localStorage.setItem(VOLUME_KEY, String(video.volume));
+    };
+
+    video.addEventListener("volumechange", handleVolumeChange);
+    return () => video.removeEventListener("volumechange", handleVolumeChange);
+  }, [clip]); // re-run after clip loads so videoRef is attached
 
   if (error) {
     return (
@@ -65,6 +87,7 @@ export default function VideoClient() {
       <div className="max-w-4xl mx-auto">
         <div className="rounded-2xl overflow-hidden border border-white/[0.07] bg-black mb-6">
           <video
+            ref={videoRef}
             src={streamUrl}
             controls
             autoPlay
