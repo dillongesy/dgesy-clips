@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Eye, Clock, User } from "lucide-react";
 import VideoPlayer from "./VideoPlayer";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = process.env.INTERNAL_API_URL;
 
 interface ClipInfo {
   shortId: string;
