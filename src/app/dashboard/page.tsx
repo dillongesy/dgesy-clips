@@ -27,11 +27,13 @@ function formatDuration(seconds: number) {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+type UploadStatus = "idle" | "uploading" | "processing" | "done";
+
 export default function DashboardPage() {
   const router = useRouter();
   const [clips, setClips] = useState<Clip[]>([]);
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
+  const [uploadStatus, setUploadStatus] = useState<UploadStatus>("idle");
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState("");
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -62,7 +64,7 @@ export default function DashboardPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    setUploading(true);
+    setUploadStatus("uploading");
     setUploadProgress(0);
     setError("");
 
@@ -75,14 +77,16 @@ export default function DashboardPage() {
         onUploadProgress: (e) => {
           const pct = Math.round((e.loaded * 100) / (e.total || 1));
           setUploadProgress(pct);
+          if (pct === 100) setUploadStatus("processing");
         },
       });
+      setUploadStatus("done");
       await fetchClips();
     } catch (err: unknown) {
       const error = err as { response?: { data?: { error?: string } } };
       setError(error.response?.data?.error || "Upload failed");
     } finally {
-      setUploading(false);
+      setUploadStatus("idle");
       setUploadProgress(0);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
@@ -116,6 +120,8 @@ export default function DashboardPage() {
     }
   };
 
+  const isUploading = uploadStatus === "uploading" || uploadStatus === "processing";
+
   return (
     <div className="min-h-screen px-6 py-10">
       <div className="max-w-5xl mx-auto">
@@ -124,7 +130,9 @@ export default function DashboardPage() {
             <h1 className="text-3xl font-black mb-1">
               My <span className="gradient-text">Clips</span>
             </h1>
-            <p className="text-slate-500 text-sm">{clips.length} clip{clips.length !== 1 ? "s" : ""}</p>
+            <p className="text-slate-500 text-sm">
+              {clips.length} clip{clips.length !== 1 ? "s" : ""}
+            </p>
           </div>
 
           <div>
@@ -137,7 +145,7 @@ export default function DashboardPage() {
             />
             <button
               onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
+              disabled={isUploading}
               className="flex items-center gap-2 px-5 py-3 rounded-xl font-semibold text-sm text-white disabled:opacity-50 transition-all"
               style={{
                 background: "linear-gradient(135deg, #6366f1, #06b6d4)",
@@ -145,20 +153,31 @@ export default function DashboardPage() {
               }}
             >
               <Upload size={16} />
-              {uploading ? `Uploading ${uploadProgress}%` : "Upload Clip"}
+              {uploadStatus === "uploading"
+                ? `Uploading ${uploadProgress}%`
+                : uploadStatus === "processing"
+                ? "Processing..."
+                : "Upload Clip"}
             </button>
           </div>
         </div>
 
-        {uploading && (
+        {isUploading && (
           <div className="mb-6 rounded-xl overflow-hidden bg-white/[0.04] border border-white/[0.06]">
             <div
-              className="h-1.5 transition-all duration-300"
+              className={`h-1.5 transition-all duration-300 ${
+                uploadStatus === "processing" ? "animate-pulse" : ""
+              }`}
               style={{
-                width: `${uploadProgress}%`,
+                width: uploadStatus === "uploading" ? `${uploadProgress}%` : "100%",
                 background: "linear-gradient(90deg, #6366f1, #06b6d4)",
               }}
             />
+            <p className="text-xs text-slate-500 text-center py-2">
+              {uploadStatus === "uploading"
+                ? `Uploading... ${uploadProgress}%`
+                : "Compressing video, please wait..."}
+            </p>
           </div>
         )}
 
@@ -227,7 +246,9 @@ export default function DashboardPage() {
                         className="p-2 rounded-lg text-slate-500 hover:text-indigo-300 hover:bg-indigo-500/10 transition-all"
                         title="Copy link"
                       >
-                        {copiedId === clip.shortId ? <Check size={16} /> : <Copy size={16} />}
+                        {copiedId === clip.shortId
+                          ? <Check size={16} />
+                          : <Copy size={16} />}
                       </button>
                       <button
                         onClick={() => setShareTarget(clip.shortId)}
@@ -259,12 +280,17 @@ export default function DashboardPage() {
                     <button
                       onClick={() => handleShare(clip.shortId)}
                       className="px-4 py-2 rounded-xl text-sm font-medium text-white"
-                      style={{ background: "linear-gradient(135deg, #6366f1, #06b6d4)" }}
+                      style={{
+                        background: "linear-gradient(135deg, #6366f1, #06b6d4)",
+                      }}
                     >
                       Share
                     </button>
                     <button
-                      onClick={() => { setShareTarget(null); setShareUsername(""); }}
+                      onClick={() => {
+                        setShareTarget(null);
+                        setShareUsername("");
+                      }}
                       className="px-4 py-2 rounded-xl text-sm text-slate-400 border border-white/[0.08] hover:bg-white/[0.05] transition-all"
                     >
                       Cancel

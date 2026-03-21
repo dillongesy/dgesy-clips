@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import api from "@/lib/api";
 import { Eye, Clock, User } from "lucide-react";
@@ -29,6 +29,7 @@ export default function VideoClient() {
     : (params.shortId as string);
   const [clip, setClip] = useState<ClipInfo | null>(null);
   const [error, setError] = useState("");
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     const fetchClip = async () => {
@@ -41,6 +42,21 @@ export default function VideoClient() {
     };
     fetchClip();
   }, [shortId]);
+
+  useEffect(() => {
+    if (videoRef.current) {
+      const savedVolume = localStorage.getItem("clipVolume");
+      if (savedVolume !== null) {
+        videoRef.current.volume = parseFloat(savedVolume);
+      }
+    }
+  }, [clip]);
+
+  const handleVolumeChange = () => {
+    if (videoRef.current) {
+      localStorage.setItem("clipVolume", videoRef.current.volume.toString());
+    }
+  };
 
   if (error) {
     return (
@@ -65,11 +81,13 @@ export default function VideoClient() {
       <div className="max-w-4xl mx-auto">
         <div className="rounded-2xl overflow-hidden border border-white/[0.07] bg-black mb-6">
           <video
+            ref={videoRef}
             src={streamUrl}
             controls
             autoPlay
             className="w-full aspect-video"
-            poster={clip.thumbnailUrl}
+            poster={`/api/clips/thumbnail/${shortId}`}
+            onVolumeChange={handleVolumeChange}
           />
         </div>
 
