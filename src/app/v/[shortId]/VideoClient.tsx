@@ -24,7 +24,9 @@ function formatDuration(seconds: number) {
 
 export default function VideoClient() {
   const params = useParams();
+  console.log("params:", params);
   const shortId = params.shortId as string;
+  console.log("shortId:", shortId);
   const [clip, setClip] = useState<ClipInfo | null>(null);
   const [error, setError] = useState("");
 
