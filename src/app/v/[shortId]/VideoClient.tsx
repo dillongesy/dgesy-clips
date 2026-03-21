@@ -58,7 +58,7 @@ export default function VideoClient() {
     );
   }
 
-  const streamUrl = `https://clips.dgesy.org${clip.streamUrl}`;
+  const streamUrl = clip.streamUrl;
 
   return (
     <div className="min-h-screen px-6 py-10">
