@@ -26,15 +26,22 @@ function formatDuration(seconds: number) {
 async function getClip(shortId: string, token?: string): Promise<ClipInfo | null> {
   try {
     const headers: Record<string, string> = {};
-    if (token) headers["Authorization"] = `Bearer ${token}`;
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+      console.log("Fetching clip with token:", token.substring(0, 20) + "...");
+    } else {
+      console.log("Fetching clip WITHOUT token");
+    }
 
     const res = await fetch(`${API_URL}/api/clips/view/${shortId}`, {
       cache: "no-store",
       headers,
     });
+    console.log("API response status:", res.status);
     if (!res.ok) return null;
     return res.json();
-  } catch {
+  } catch (e) {
+    console.log("Fetch error:", e);
     return null;
   }
 }
