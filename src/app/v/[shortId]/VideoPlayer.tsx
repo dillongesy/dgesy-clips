@@ -7,13 +7,17 @@ interface VideoPlayerProps {
   thumbnailUrl: string;
 }
 
+function getCookie(name: string): string | null {
+  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+  return match ? match[2] : null;
+}
+
 export default function VideoPlayer({ streamUrl, thumbnailUrl }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [src, setSrc] = useState(streamUrl);
 
   useEffect(() => {
-    // Append token to stream URL for private clip auth
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("token") || getCookie("token");
     if (token) {
       setSrc(`${streamUrl}?token=${token}`);
     }
