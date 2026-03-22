@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface VideoPlayerProps {
   streamUrl: string;
@@ -9,6 +9,15 @@ interface VideoPlayerProps {
 
 export default function VideoPlayer({ streamUrl, thumbnailUrl }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const [src, setSrc] = useState(streamUrl);
+
+  useEffect(() => {
+    // Append token to stream URL for private clip auth
+    const token = localStorage.getItem("token");
+    if (token) {
+      setSrc(`${streamUrl}?token=${token}`);
+    }
+  }, [streamUrl]);
 
   useEffect(() => {
     if (videoRef.current) {
@@ -28,7 +37,7 @@ export default function VideoPlayer({ streamUrl, thumbnailUrl }: VideoPlayerProp
   return (
     <video
       ref={videoRef}
-      src={streamUrl}
+      src={src}
       controls
       autoPlay
       className="w-full aspect-video"
