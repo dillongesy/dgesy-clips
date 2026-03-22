@@ -102,11 +102,12 @@ export default function DashboardPage() {
         },
       });
       setUploadStatus("done");
-      await fetchClips();
     } catch (err: unknown) {
       const error = err as { response?: { data?: { error?: string } } };
-      setError(error.response?.data?.error || "Upload failed");
+      const errMsg = error.response?.data?.error || "Upload may have succeeded - check your clips";
+      setError(errMsg);
     } finally {
+      await fetchClips();
       setUploadStatus("idle");
       setUploadProgress(0);
       if (fileInputRef.current) fileInputRef.current.value = "";
