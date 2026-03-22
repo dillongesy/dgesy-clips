@@ -74,8 +74,8 @@ export default function DashboardPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 500 * 1024 * 1024) {
-      setError("File exceeds 500MB limit.");
+    if (file.size > 250 * 1024 * 1024) {
+      setError("File exceeds 250MB limit. Please upload a smaller file.");
       if (fileInputRef.current) fileInputRef.current.value = "";
       return;
     }
