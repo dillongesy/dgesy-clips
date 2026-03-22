@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { isLoggedIn } from "@/lib/auth";
 import api from "@/lib/api";
 import { Upload, Trash2, Share2, Copy, Check, Lock, Eye, EyeOff, Pencil, Globe } from "lucide-react";
+import axios from "axios";
 
 interface Clip {
   shortId: string;
@@ -14,6 +15,11 @@ interface Clip {
   viewCount: number;
   createdAt: string;
   private: boolean;
+}
+
+function getCookie(name: string): string | null {
+  const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+  return match ? match[2] : null;
 }
 
 function formatBytes(bytes: number) {
@@ -62,9 +68,17 @@ export default function DashboardPage() {
     }
   };
 
+  const UPLOAD_URL = process.env.NEXT_PUBLIC_UPLOAD_URL;
+
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    if (file.size > 500 * 1024 * 1024) {
+      setError("File exceeds 500MB limit.");
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      return;
+    }
 
     setUploadStatus("uploading");
     setUploadProgress(0);
@@ -73,9 +87,14 @@ export default function DashboardPage() {
     const formData = new FormData();
     formData.append("file", file);
 
+    const token = localStorage.getItem("token") || getCookie("token");
+
     try {
-      await api.post("/api/clips/upload", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+      await axios.post(`${UPLOAD_URL}/api/clips/upload`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          "Authorization": `Bearer ${token}`,
+        },
         onUploadProgress: (e) => {
           const pct = Math.round((e.loaded * 100) / (e.total || 1));
           setUploadProgress(pct);

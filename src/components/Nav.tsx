@@ -10,8 +10,13 @@ export default function Nav() {
   const [admin, setAdmin] = useState(false);
 
   useEffect(() => {
-    setLoggedIn(isLoggedIn());
-    setAdmin(isAdmin());
+    const update = () => {
+      setLoggedIn(isLoggedIn());
+      setAdmin(isAdmin());
+    };
+    update();
+    window.addEventListener("authChange", update);
+    return () => window.removeEventListener("authChange", update);
   }, []);
 
   const logout = () => {
