@@ -5,7 +5,7 @@ export const getToken = (): string | null => {
 
 export const setToken = (token: string): void => {
   localStorage.setItem("token", token);
-  document.cookie = `token=${token}; path=/; max-age=86400; SameSite=Strict`;
+  document.cookie = `token=${token}; path=/; max-age=2592000; SameSite=Strict`;
   window.dispatchEvent(new Event("authChange"));
 };
 
