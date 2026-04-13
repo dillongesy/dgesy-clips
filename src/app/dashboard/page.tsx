@@ -413,7 +413,7 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  {/* Add to folder dropdown */}
+                  {/* Add to folder dropdown */} 
                   {addingToFolder === clip.shortId && (
                     <div className="mt-4 p-3 rounded-xl dark:bg-white/[0.03] bg-slate-50 border dark:border-white/[0.06] border-slate-200">
                       <p className="text-xs dark:text-slate-500 text-slate-400 mb-2">Add to folder:</p>
