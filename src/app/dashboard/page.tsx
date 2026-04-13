@@ -7,7 +7,7 @@ import api from "@/lib/api";
 import axios from "axios";
 import {
   Upload, Trash2, Copy, Check, Lock, Eye,
-  EyeOff, Pencil, Globe, Twitter, FolderPlus
+  EyeOff, Pencil, Globe, Twitter
 } from "lucide-react";
 import FolderSidebar from "@/components/FolderSidebar";
 
@@ -21,11 +21,6 @@ interface Clip {
   viewCount: number;
   createdAt: string;
   private: boolean;
-}
-
-interface FolderItem {
-  id: number;
-  name: string;
 }
 
 function formatBytes(bytes: number) {
@@ -57,8 +52,7 @@ export default function DashboardPage() {
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null);
-  const [addingToFolder, setAddingToFolder] = useState<string | null>(null);
-  const [userFolders, setUserFolders] = useState<FolderItem[]>([]);
+  const [draggedClip, setDraggedClip] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -67,7 +61,6 @@ export default function DashboardPage() {
       return;
     }
     fetchClips();
-    fetchUserFolders();
   }, [router]);
 
   useEffect(() => {
@@ -88,11 +81,6 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const fetchUserFolders = async () => {
-    const res = await api.get("/api/folders");
-    setUserFolders(res.data);
   };
 
   const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -126,7 +114,6 @@ export default function DashboardPage() {
         },
       });
 
-      // If a folder is selected, add clip to it
       if (selectedFolderId !== null && res.data.shortId) {
         await api.post(`/api/folders/${selectedFolderId}/clips`, {
           shortId: res.data.shortId,
@@ -187,16 +174,14 @@ export default function DashboardPage() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const shareToTwitter = (shortId: string, name: string) => {
+  const shareToTwitter = (shortId: string) => {
     const url = encodeURIComponent(`https://clips.dgesy.org/v/${shortId}`);
-    const text = encodeURIComponent(`Check out this clip: ${name}`);
-    window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, "_blank");
+    window.open(`https://twitter.com/intent/tweet?url=${url}`, "_blank");
   };
 
-  const handleAddToFolder = async (shortId: string, folderId: number) => {
+  const handleDropClip = async (folderId: number, shortId: string) => {
     try {
       await api.post(`/api/folders/${folderId}/clips`, { shortId });
-      setAddingToFolder(null);
     } catch (err: unknown) {
       const error = err as { response?: { data?: { error?: string } } };
       setError(error.response?.data?.error || "Failed to add to folder");
@@ -208,16 +193,15 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen px-6 py-10">
       <div className="max-w-6xl mx-auto flex gap-8">
-        {/* Folder sidebar */}
         <FolderSidebar
           selectedFolderId={selectedFolderId}
           onSelectFolder={(id) => {
             setSelectedFolderId(id);
             setLoading(true);
           }}
+          onDropClip={handleDropClip}
         />
 
-        {/* Main content */}
         <div className="flex-1">
           <div className="flex items-center justify-between mb-10">
             <div>
@@ -296,10 +280,17 @@ export default function DashboardPage() {
               {clips.map((clip) => (
                 <div
                   key={clip.shortId}
-                  className="rounded-2xl border dark:border-white/[0.07] border-slate-200 dark:bg-white/[0.02] bg-white p-5 hover:border-indigo-500/20 transition-all"
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData("shortId", clip.shortId);
+                    setDraggedClip(clip.shortId);
+                  }}
+                  onDragEnd={() => setDraggedClip(null)}
+                  className={`rounded-2xl border dark:border-white/[0.07] border-slate-200 dark:bg-white/[0.02] bg-white p-5 hover:border-indigo-500/20 transition-all cursor-grab active:cursor-grabbing ${
+                    draggedClip === clip.shortId ? "opacity-50 scale-[0.98]" : ""
+                  }`}
                 >
                   <div className="flex items-center gap-4 flex-wrap">
-                    {/* Thumbnail */}
                     <div
                       onClick={() => router.push(`/v/${clip.shortId}`)}
                       className="w-32 h-20 rounded-xl overflow-hidden bg-black flex-shrink-0 cursor-pointer"
@@ -311,7 +302,6 @@ export default function DashboardPage() {
                       />
                     </div>
 
-                    {/* Info + actions */}
                     <div className="flex-1 flex items-center justify-between gap-4 flex-wrap">
                       <div className="space-y-1">
                         {renamingId === clip.shortId ? (
@@ -336,7 +326,7 @@ export default function DashboardPage() {
                             </button>
                             <button
                               onClick={() => { setRenamingId(null); setRenameValue(""); }}
-                              className="px-3 py-1.5 rounded-lg text-xs dark:text-slate-400 text-slate-600 border dark:border-white/[0.08] border-slate-200 hover:bg-slate-100 dark:hover:bg-white/[0.05] transition-all"
+                              className="px-3 py-1.5 rounded-lg text-xs dark:text-slate-400 text-slate-600 border dark:border-white/[0.08] border-slate-200 transition-all"
                             >
                               Cancel
                             </button>
@@ -389,18 +379,11 @@ export default function DashboardPage() {
                           {copiedId === clip.shortId ? <Check size={16} /> : <Copy size={16} />}
                         </button>
                         <button
-                          onClick={() => shareToTwitter(clip.shortId, clip.originalName)}
+                          onClick={() => shareToTwitter(clip.shortId)}
                           className="p-2 rounded-lg dark:text-slate-500 text-slate-400 hover:text-sky-400 hover:bg-sky-500/10 transition-all"
                           title="Share on X"
                         >
                           <Twitter size={16} />
-                        </button>
-                        <button
-                          onClick={() => setAddingToFolder(addingToFolder === clip.shortId ? null : clip.shortId)}
-                          className="p-2 rounded-lg dark:text-slate-500 text-slate-400 hover:text-cyan-300 hover:bg-cyan-500/10 transition-all"
-                          title="Add to folder"
-                        >
-                          <FolderPlus size={16} />
                         </button>
                         <button
                           onClick={() => handleDelete(clip.shortId)}
@@ -412,28 +395,6 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   </div>
-
-                  {/* Add to folder dropdown */} 
-                  {addingToFolder === clip.shortId && (
-                    <div className="mt-4 p-3 rounded-xl dark:bg-white/[0.03] bg-slate-50 border dark:border-white/[0.06] border-slate-200">
-                      <p className="text-xs dark:text-slate-500 text-slate-400 mb-2">Add to folder:</p>
-                      {userFolders.length === 0 ? (
-                        <p className="text-xs dark:text-slate-600 text-slate-400">No folders yet — create one in the sidebar</p>
-                      ) : (
-                        <div className="flex flex-wrap gap-2">
-                          {userFolders.map((folder) => (
-                            <button
-                              key={folder.id}
-                              onClick={() => handleAddToFolder(clip.shortId, folder.id)}
-                              className="px-3 py-1.5 rounded-lg text-xs border dark:border-white/[0.08] border-slate-200 dark:text-slate-400 text-slate-600 dark:hover:bg-white/[0.05] hover:bg-slate-100 transition-all"
-                            >
-                              {folder.name}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
                 </div>
               ))}
             </div>

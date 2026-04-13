@@ -16,14 +16,16 @@ interface FolderNodeProps {
   selectedId: number | null;
   onSelect: (id: number | null) => void;
   onRefresh: () => void;
+  onDrop: (folderId: number, shortId: string) => void;
   depth: number;
 }
 
-function FolderNode({ folder, selectedId, onSelect, onRefresh, depth }: FolderNodeProps) {
+function FolderNode({ folder, selectedId, onSelect, onRefresh, onDrop, depth }: FolderNodeProps) {
   const [expanded, setExpanded] = useState(false);
   const [children, setChildren] = useState<FolderItem[]>([]);
   const [renaming, setRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(folder.name);
+  const [dragOver, setDragOver] = useState(false);
   const isSelected = selectedId === folder.id;
 
   const loadChildren = async () => {
@@ -54,11 +56,21 @@ function FolderNode({ folder, selectedId, onSelect, onRefresh, depth }: FolderNo
     <div>
       <div
         className={`flex items-center gap-1 px-2 py-1.5 rounded-lg cursor-pointer group transition-all ${
-          isSelected
+          dragOver
+            ? "bg-indigo-500/20 border border-indigo-500/40"
+            : isSelected
             ? "bg-indigo-500/15 text-indigo-300"
             : "dark:hover:bg-white/[0.04] hover:bg-slate-100 dark:text-slate-400 text-slate-600"
         }`}
         style={{ paddingLeft: `${8 + depth * 16}px` }}
+        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragOver(false);
+          const shortId = e.dataTransfer.getData("shortId");
+          if (shortId) onDrop(folder.id, shortId);
+        }}
       >
         <button
           onClick={loadChildren}
@@ -120,6 +132,7 @@ function FolderNode({ folder, selectedId, onSelect, onRefresh, depth }: FolderNo
           selectedId={selectedId}
           onSelect={onSelect}
           onRefresh={() => { loadChildren(); onRefresh(); }}
+          onDrop={onDrop}
           depth={depth + 1}
         />
       ))}
@@ -130,12 +143,14 @@ function FolderNode({ folder, selectedId, onSelect, onRefresh, depth }: FolderNo
 interface FolderSidebarProps {
   selectedFolderId: number | null;
   onSelectFolder: (id: number | null) => void;
+  onDropClip: (folderId: number, shortId: string) => void;
 }
 
-export default function FolderSidebar({ selectedFolderId, onSelectFolder }: FolderSidebarProps) {
+export default function FolderSidebar({ selectedFolderId, onSelectFolder, onDropClip }: FolderSidebarProps) {
   const [folders, setFolders] = useState<FolderItem[]>([]);
   const [creatingFolder, setCreatingFolder] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
+  const [dragOver, setDragOver] = useState(false);
 
   const fetchFolders = async () => {
     const res = await api.get("/api/folders");
@@ -183,7 +198,7 @@ export default function FolderSidebar({ selectedFolderId, onSelectFolder }: Fold
               if (e.key === "Escape") setCreatingFolder(false);
             }}
             placeholder="Folder name..."
-            className="flex-1 px-2 py-1 text-sm rounded-lg dark:bg-white/[0.05] bg-slate-100 border dark:border-white/[0.08] border-slate-200 outline-none focus:border-indigo-500/40"
+            className="flex-1 px-2 py-1 text-sm rounded-lg dark:bg-white/[0.05] bg-slate-100 border dark:border-white/[0.08] border-slate-200 outline-none focus:border-indigo-500/40 dark:text-slate-100 text-slate-900"
           />
           <button
             onClick={handleCreate}
@@ -195,10 +210,19 @@ export default function FolderSidebar({ selectedFolderId, onSelectFolder }: Fold
         </div>
       )}
 
+      {/* All clips drop zone */}
       <button
         onClick={() => onSelectFolder(null)}
+        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragOver(false);
+        }}
         className={`w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-sm transition-all mb-1 ${
-          selectedFolderId === null
+          dragOver
+            ? "bg-indigo-500/20 border border-indigo-500/40"
+            : selectedFolderId === null
             ? "bg-indigo-500/15 text-indigo-300"
             : "dark:text-slate-400 text-slate-600 dark:hover:bg-white/[0.04] hover:bg-slate-100"
         }`}
@@ -214,6 +238,7 @@ export default function FolderSidebar({ selectedFolderId, onSelectFolder }: Fold
           selectedId={selectedFolderId}
           onSelect={onSelectFolder}
           onRefresh={fetchFolders}
+          onDrop={onDropClip}
           depth={0}
         />
       ))}
